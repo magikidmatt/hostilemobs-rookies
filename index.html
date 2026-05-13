@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Pixel Block Architects: Understanding Hostile Mobs</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'pixel-green': '#4CAF50',
+                        'pixel-dark': '#2E7D32',
+                        'block-grass': '#7CB342',
+                        'mob-red': '#E53935',
+                        'mob-orange': '#FF9800',
+                        'sky-blue': '#81D4FA',
+                        'dirt-brown': '#795548',
+                        'stone-gray': '#9E9E9E',
+                        'creeper-green': '#00E676',
+                        'gold': '#FFD700'
+                    },
+                    fontFamily: {
+                        'heading': ['Fredoka One', 'sans-serif'],
+                        'body': ['Nunito', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+        body { font-family: 'Nunito', sans-serif; }
+        h1, h2, h3 { font-family: 'Fredoka One', sans-serif; }
+        
+        /* Progress Bar */
+        .progress-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: linear-gradient(135deg, #1B5E20 0%, #4CAF50 100%);
+            padding: 12px 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        
+        /* Step sections */
+        section {
+            scroll-margin-top: 80px;
+        }
+        
+        /* Step badges */
+        .step-badge {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Fredoka One', sans-serif;
+            font-size: 24px;
+            transition: all 0.4s ease;
+            border: 4px solid white;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .step-badge.pending {
+            background: linear-gradient(135deg, #FF9800, #FFB74D);
+            color: white;
+        }
+        .step-badge.active {
+            background: linear-gradient(135deg, #2196F3, #64B5F6);
+            color: white;
+            animation: pulse 2s infinite;
+        }
+        .step-badge.completed {
+            background: linear-gradient(135deg, #4CAF50, #81C784);
+            color: white;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+        
+        /* Connector lines */
+        .connector {
+            width: 4px;
+            height: 40px;
+            background: linear-gradient(to bottom, #FF9800, #ddd);
+            margin: 0 auto;
+        }
+        .connector.completed {
+            background: linear-gradient(to bottom, #4CAF50, #81C784);
+        }
+        
+        /* Mob cards */
+        .mob-card {
+            background: white;
+            border-radius: 20px;
+            padding: 16px;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+            transition: transform 0.3s ease;
+            cursor: pointer;
+        }
+        .mob-card:active {
+            transform: scale(0.95);
+        }
+        .mob-card.hostile {
+            border: 4px solid #E53935;
+        }
+        .mob-card.friendly {
+            border: 4px solid #4CAF50;
+        }
+        
+        /* Video Section */
+        .video-thumbnail {
+            position: relative;
+            cursor: pointer;
+            border-radius: 16px;
+            overflow: hidden;
+            aspect-ratio: 16/9;
+            max-width: 480px;
+            margin: 0 auto;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        }
+        .video-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+        .video-thumbnail:hover img {
+            transform: scale(1.05);
+        }
+        .video-thumbnail .play-btn {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80px;
+            height: 80px;
+            background: rgba(229, 57, 53, 0.9);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        .video-thumbnail:hover .play-btn {
+            background: rgba(229, 57, 53, 1);
+            transform: translate(-50%, -50%) scale(1.1);
+        }
+        .video-thumbnail .play-btn svg {
+            width: 32px;
+            height: 32px;
+            fill: white;
+            margin-left: 4px;
+        }
+        .video-container {
+            aspect-ratio: 16/9;
+            max-width: 480px;
+            margin: 0 auto;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        }
+        .video-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        
+        /* Sort bins */
+        .sort-bin {
+            border: 4px dashed;
+            border-radius: 24px;
+            min-height: 200px;
+            transition: all 0.3s ease;
+            padding: 16px;
+        }
+        .sort-bin.hostile-bin {
+            border-color: #E53935;
+            background: rgba(229, 57, 53, 0.1);
+        }
+        .sort-bin.friendly-bin {
+            border-color: #4CAF50;
+            background: rgba(76, 175, 80, 0.1);
+        }
+        .sort-bin.drag-over {
+            transform: scale(1.05);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+        }
+        
+        /* Floating items */
+        .float-anim {
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        /* Blocky character */
+        .blocky-character {
+            width: 120px;
+            height: 120px;
+            position: relative;
+        }
+        .blocky-body {
+            animation: wiggle 2s ease-in-out infinite;
+        }
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-5deg); }
+            75% { transform: rotate(5deg); }
+        }
+        
+        /* Checklist */
+        .checklist-item {
+            transition: all 0.3s ease;
+        }
+        .checklist-item.checked {
+            background: rgba(76, 175, 80, 0.2);
+            text-decoration: line-through;
+        }
+        .checklist-item.checked .check-circle {
+            background: #4CAF50;
+            border-color: #4CAF50;
+        }
+        .checklist-item.checked .check-circle::after {
+            content: '✓';
+            color: white;
+            font-size: 20px;
+        }
+        
+        /* Confetti */
+        .confetti {
+            position: fixed;
+            width: 12px;
+            height: 12px;
+            pointer-events: none;
+            z-index: 1000;
+            animation: confetti-fall 4s ease-out forwards;
+        }
+        @keyframes confetti-fall {
+            0% {
+                opacity: 1;
+                transform: translateY(0) rotate(0deg);
+            }
+            100% {
+                opacity: 0;
+                transform: translateY(100vh) rotate(720deg);
+            }
+        }
+        
+        /* Hotspot tooltip */
+        .hotspot-tooltip {
+            position: absolute;
+            background: white;
+            border-radius: 16px;
+            padding: 12px 16px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+            max-width: 200px;
+            z-index: 50;
+            animation: popIn 0.3s ease;
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        /* Activity cards */
+        .activity-card {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        .activity-card:active {
+            transform: scale(0.97);
+        }
+        .activity-card.completed {
+            background: linear-gradient(135deg, #E8F5E9, #C8E6C9);
+            border: 3px solid #4CAF50;
+        }
+        
+        /* Badge */
+        .reward-badge {
+            background: linear-gradient(135deg, #FFD700, #FFA000);
+            border-radius: 50%;
+            width: 140px;
+            height: 140px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 32px rgba(255, 193, 7, 0.5);
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+        @keyframes glow {
+            0% { box-shadow: 0 8px 32px rgba(255, 193, 7, 0.5); }
+            100% { box-shadow: 0 8px 48px rgba(255, 193, 7, 0.8); }
+        }
+        
+        /* Blueprint grid */
+        .blueprint-grid {
+            background: 
+                linear-gradient(rgba(76, 175, 80, 0.3) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(76, 175, 80, 0.3) 1px, transparent 1px);
+            background-size: 24px 24px;
+            background-color: #1a1a2e;
+        }
+        
+        /* Hotspot markers */
+        .hotspot-marker {
+            position: absolute;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: rgba(255, 193, 7, 0.8);
+            border: 3px solid white;
+            cursor: pointer;
+            animation: beacon 1.5s ease-in-out infinite;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        @keyframes beacon {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+        }
+        
+        /* Logo watermark */
+        .logo-watermark {
+            position: fixed;
+            opacity: 0.04;
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        /* Completion button */
+        .complete-btn {
+            background: linear-gradient(135deg, #4CAF50, #66BB6A);
+            color: white;
+            padding: 16px 32px;
+            border-radius: 50px;
+            font-family: 'Fredoka One', sans-serif;
+            font-size: 20px;
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+        .complete-btn:active {
+            transform: scale(0.95);
+        }
+        .complete-btn:disabled {
+            background: #9E9E9E;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #4CAF50; border-radius: 4px; }
+    </style>
+</head>
+<body class="bg-gradient-to-b from-sky-blue via-blue-100 to-green-100 min-h-screen pb-24">
+    
+    <!-- Logo Watermarks (Background) -->
+    <img src="magikidlogo.png" class="logo-watermark w-64 top-20 left-4" style="animation: float 4s ease-in-out infinite;">
+    <img src="magikidlogo.png" class="logo-watermark w-48 bottom-40 right-8" style="animation: float 5s ease-in-out infinite 1s;">
+    
+    <!-- Progress Bar -->
+    <div class="progress-container">
+        <div class="flex items-center justify-between max-w-2xl mx-auto">
+            <img src="magikidlogo.png" class="h-10 w-auto">
+            <div class="flex-1 mx-4">
+                <div class="text-white text-sm font-bold mb-1 text-center">Micro-Mission Progress</div>
+                <div class="bg-white/30 rounded-full h-6 overflow-hidden">
+                    <div id="progressFill" class="h-full bg-gradient-to-r from-yellow-300 to-yellow-400 rounded-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+            </div>
+            <div id="progressText" class="text-white font-bold text-lg">0/6</div>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <main class="pt-20 px-4 max-w-4xl mx-auto">
+        
+        <!-- ============ STEP 1: THE MYSTERY ============ -->
+        <section id="step1" class="mb-8 scroll-mt-24">
+            <div class="flex items-center gap-4 mb-6">
+                <div id="badge1" class="step-badge pending">1</div>
+                <h2 class="text-2xl md:text-3xl text-green-800">The Mystery</h2>
+            </div>
+            
+            <div class="bg-white rounded-3xl p-6 shadow-xl border-4 border-green-500 relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-red-500/20 rounded-full blur-3xl"></div>
+                
+                <!-- Hook Visual -->
+                <div class="bg-gradient-to-br from-red-100 to-orange-100 rounded-2xl p-6 mb-6 border-4 border-red-400 animate-pulse">
+                    <div class="text-center">
+                        <span class="text-6xl block mb-2">&#128163;</span>
+                        <div class="bg-red-500 text-white px-4 py-2 rounded-full inline-block font-bold">
+                            ! CREEPER ALERT !
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Story -->
+                <div class="text-lg text-gray-700 mb-6">
+                    <p class="mb-4">&#128640; <strong>Good morning, Rookies!</strong></p>
+                    <p class="mb-4">&#128561; Oh no! The Pixel Block Village is in trouble!</p>
+                    <p>Strange green creatures are <span class="text-red-500 font-bold">SNEAKING</span> up on the buildings. They get very close... then <span class="text-red-500 font-bold animate-bounce inline-block">BOOM!</span></p>
+                </div>
+                
+                <!-- Movement Activity -->
+                <div class="bg-green-100 rounded-2xl p-4 mb-4">
+                    <h3 class="text-xl text-green-800 mb-3">&#127939; Get Ready to Move!</h3>
+                    <p class="text-gray-700 mb-3">Creepers move super slow but super sneaky! Let's practice:</p>
+                    <div class="flex flex-wrap gap-3">
+                        <button onclick="doSneakyWalk()" class="bg-green-500 text-white px-4 py-3 rounded-xl font-bold">
+                            &#127939; Sneaky Walk
+                        </button>
+                        <button onclick="doQuickJump()" class="bg-orange-500 text-white px-4 py-3 rounded-xl font-bold">
+                            &#127937; Quick Jump!
+                        </button>
+                        <button onclick="doFreeze()" class="bg-blue-500 text-white px-4 py-3 rounded-xl font-bold">
+                            &#127770; FREEZE!
+                        </button>
+                    </div>
+                    <div id="movementStatus" class="mt-3 text-green-700 font-bold"></div>
+                </div>
+                
+                <!-- Discussion -->
+                <div class="bg-yellow-100 rounded-xl p-4 border-2 border-yellow-400">
+                    <p class="text-yellow-800 font-bold">&#128104;&#8205;&#128187; Tell a Friend:</p>
+                    <p class="text-gray-700">Have you ever seen a green Creeper? What happens when it gets too close?</p>
+                </div>
+                
+                <button onclick="completeStep(1)" class="complete-btn mt-6 w-full">
+                    I Did It! &#127881;
+                </button>
+            </div>
+        </section>
+        
+        <div id="connector1" class="connector"></div>
+        
+        <!-- ============ STEP 2: MEET THE SUBJECT ============ -->
+        <section id="step2" class="mb-8 scroll-mt-24">
+            <div class="flex items-center gap-4 mb-6">
+                <div id="badge2" class="step-badge pending">2</div>
+                <h2 class="text-2xl md:text-3xl text-green-800">Meet the Mobs!</h2>
+            </div>
+            
+            <div class="bg-white rounded-3xl p-6 shadow-xl border-4 border-blue-400">
+                <!-- Blocky Character -->
+                <div class="text-center mb-6">
+                    <div class="blocky-character inline-block cursor-pointer" onclick="animateCharacter()">
+                        <svg viewBox="0 0 120 120" class="blocky-body w-full h-full">
+                            <!-- Face -->
+                            <rect x="20" y="20" width="80" height="80" rx="8" fill="#8B5A2B"/>
+                            <!-- Eyes -->
+                            <rect x="35" y="40" width="20" height="20" fill="white"/>
+                            <rect x="65" y="40" width="20" height="20" fill="white"/>
+                            <rect x="40" y="45" width="10" height="10" fill="#333"/>
+                            <rect x="70" y="45" width="10" height="10" fill="#333"/>
+                            <!-- Smile -->
+                            <rect x="35" y="70" width="50" height="10" rx="5" fill="#333"/>
+                            <rect x="40" y="65" width="40" height="5" fill="#8B5A2B"/>
+                            <!-- Arms -->
+                            <rect x="0" y="45" width="20" height="40" rx="4" fill="#8B5A2B"/>
+                            <rect x="100" y="45" width="20" height="40" rx="4" fill="#8B5A2B"/>
+                            <!-- Legs -->
+                            <rect x="25" y="100" width="25" height="20" rx="4" fill="#5D4037"/>
+                            <rect x="70" y="100" width="25" height="20" rx="4" fill="#5D4037"/>
+                        </svg>
+                    </div>
+                    <p class="text-gray-600 mt-2">Tap me to make me dance!</p>
+                </div>
+                
+                <h3 class="text-xl text-blue-600 mb-4 text-center">&#128075; I'm Blocky! Nice to meet you!</h3>
+                
+                <!-- Video Section -->
+                <div class="mb-6">
+                    <a href="https://www.youtube.com/watch?v=ea0OkWX0fpE" target="_blank" rel="noopener noreferrer" class="block video-thumbnail">
+                        <img src="https://img.youtube.com/vi/ea0OkWX0fpE/maxresdefault.jpg" alt="Minecraft Mobs Video" loading="lazy" onerror="this.src='https://img.youtube.com/vi/ea0OkWX0fpE/hqdefault.jpg'">
+                        <div class="play-btn">
+                            <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                        </div>
+                        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+                            <p class="text-white font-bold text-sm">&#127916; Watch: Minecraft Mobs for Kids!</p>
+                        </div>
+                        <div class="absolute inset-0 flex items-center justify-center bg-black/20">
+                            <div class="bg-white/90 backdrop-blur-sm rounded-full px-4 py-2 text-gray-800 text-sm font-bold shadow-lg">
+                                ▶ Tap to Watch on YouTube
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                
+                <!-- Mob Cards -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <!-- Creeper -->
+                    <div class="mob-card hostile text-center">
+                        <div class="text-5xl mb-2">&#128163;</div>
+                        <h4 class="font-bold text-red-600">Creeper</h4>
+                        <p class="text-sm text-gray-600">Goes BOOM when close!</p>
+                        <p class="text-xs text-gray-500 mt-1">&#128559; Green & scary</p>
+                    </div>
+                    <!-- Zombie -->
+                    <div class="mob-card hostile text-center">
+                        <div class="text-5xl mb-2">&#129503;</div>
+                        <h4 class="font-bold text-red-600">Zombie</h4>
+                        <p class="text-sm text-gray-600">Chases at night!</p>
+                        <p class="text-xs text-gray-500 mt-1">&#127774; Only at night</p>
+                    </div>
+                    <!-- Skeleton -->
+                    <div class="mob-card hostile text-center">
+                        <div class="text-5xl mb-2">&#128128;</div>
+                        <h4 class="font-bold text-red-600">Skeleton</h4>
+                        <p class="text-sm text-gray-600">Shoots arrows!</p>
+                        <p class="text-xs text-gray-500 mt-1">&#127774; Only at night</p>
+                    </div>
+                    <!-- Pig -->
+                    <div class="mob-card friendly text-center">
+                        <div class="text-5xl mb-2">&#128054;</div>
+                        <h4 class="font-bold text-green-600">Pig</h4>
+                        <p class="text-sm text-gray-600">Super friendly!</p>
+                        <p class="text-xs text-gray-500 mt-1">&#9829; Safe to be near</p>
+                    </div>
+                </div>
+                
+                <!-- Fun Facts -->
+                <div class="bg-blue-50 rounded-xl p-4 mb-4">
+                    <h3 class="text-lg text-blue-600 font-bold mb-3">&#128161; Fun Facts!</h3>
+                    <div class="space-y-2">
+                        <div class="flex items-start gap-2">
+                            <span class="text-2xl">&#128163;</span>
+                            <p class="text-gray-700">Creepers can't hear you - they're completely silent!</p>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <span class="text-2xl">&#127774;</span>
+                            <p class="text-gray-700">Mobs only come out when the sun goes DOWN!</p>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <span class="text-2xl">&#128054;</span>
+                            <p class="text-gray-700">Pigs say "Oink oink!" when they're happy!</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <button onclick="completeStep(2)" class="complete-btn mt-4 w-full">
+                    I Met the Mobs! &#128064;
+                </button>
+            </div>
+        </section>
+        
+        <div id="connector2" class="connector"></div>
+        
+        <!-- ============ STEP 3: GEAR UP ============ -->
+        <section id="step3" class="mb-8 scroll-mt-24">
+            <div class="flex items-center gap-4 mb-6">
+                <div id="badge3" class="step-badge pending">3</div>
+                <h2 class="text-2xl md:text-3xl text-green-800">Gear Up!</h2>
+            </div>
+            
+            <div class="bg-white rounded-3xl p-6 shadow-xl border-4 border-orange-400">
+                <h3 class="text-xl text-orange-600 mb-4">&#128717; Get Ready to Explore!</h3>
+                <p class="text-gray-600 mb-6">Check off each item before you start your mission!</p>
+                
+                <div class="space-y-3 mb-6" id="gearChecklist">
+                    <div class="checklist-item flex items-center gap-4 p-4 bg-gray-50 rounded-xl cursor-pointer border-2 border-gray-200" onclick="toggleCheck(0)">
+                        <div class="check-circle w-8 h-8 rounded-full border-4 border-gray-300 flex items-center justify-center"></div>
+                        <span class="text-lg">&#128694; Sneaky feet (walk quietly)</span>
+                    </div>
+                    <div class="checklist-item flex items-center gap-4 p-4 bg-gray-50 rounded-xl cursor-pointer border-2 border-gray-200" onclick="toggleCheck(1)">
+                        <div class="check-circle w-8 h-8 rounded-full border-4 border-gray-300 flex items-center justify-center"></div>
+                        <span class="text-lg">&#128565; Super eyes (look all around)</span>
+                    </div>
+                    <div class="checklist-item flex items-center gap-4 p-4 bg-gray-50 rounded-xl cursor-pointer border-2 border-gray-200" onclick="toggleCheck(2)">
+                        <div class="check-circle w-8 h-8 rounded-full border-4 border-gray-300 flex items-center justify-center"></div>
+                        <span class="text-lg">&#128161; Curious brain (ask questions)</span>
+                    </div>
+                    <div class="checklist-item flex items-center gap-4 p-4 bg-gray-50 rounded-xl cursor-pointer border-2 border-gray-200" onclick="toggleCheck(3)">
+                        <div class="check-circle w-8 h-8 rounded-full border-4 border-gray-300 flex items-center justify-center"></div>
+                        <span class="text-lg">&#128161; Pocket torch (to scare mobs)</span>
+                    </div>
+                </div>
+                
+                <div id="gearStatus" class="text-center text-xl font-bold text-green-600 mb-4">
+                    0/4 Ready!
+                </div>
+                
+                <!-- Discussion -->
+                <div class="bg-yellow-100 rounded-xl p-4 border-2 border-yellow-400 mb-4">
+                    <p class="text-yellow-800 font-bold">&#128104;&#8205;&#128187; Tell a Friend:</p>
+                    <p class="text-gray-700">Why do you need a torch near mobs? What happens to them in light?</p>
+                </div>
+                
+                <button id="gearCompleteBtn" onclick="completeStep(3)" class="complete-btn mt-4 w-full" disabled>
+                    I'm Ready! &#128230;
+                </button>
+            </div>
+        </section>
+        
+        <div id="connector3" class="connector"></div>
+        
+        <!-- ============ STEP 4: EXECUTION ============ -->
+        <section id="step4" class="mb-8 scroll-mt-24">
+            <div class="flex items-center gap-4 mb-6">
+                <div id="badge4" class="step-badge pending">4</div>
+                <h2 class="text-2xl md:text-3xl text-green-800">Mission Time!</h2>
+            </div>
+            
+            <div class="bg-white rounded-3xl p-6 shadow-xl border-4 border-purple-400">
+                <h3 class="text-xl text-purple-600 mb-4">&#127981; Your Mission: Sort the Mobs!</h3>
+                
+                <!-- Mob Sorting Game -->
+                <div id="sortingGame">
+                    <!-- Source mobs to sort -->
+                    <div class="mb-6">
+                        <p class="text-gray-600 mb-3 text-center">Drag each mob to the right bin!</p>
+                        <div id="mobsToSort" class="flex flex-wrap justify-center gap-3 p-4 bg-gray-100 rounded-xl min-h-[100px]">
+                            <div class="mob-to-sort bg-white p-3 rounded-xl shadow cursor-grab active:cursor-grabbing" draggable="true" data-mob="creeper" data-type="hostile">
+                                <span class="text-4xl">&#128163;</span>
+                                <p class="text-xs text-center mt-1">Creeper</p>
+                            </div>
+                            <div class="mob-to-sort bg-white p-3 rounded-xl shadow cursor-grab active:cursor-grabbing" draggable="true" data-mob="zombie" data-type="hostile">
+                                <span class="text-4xl">&#129503;</span>
+                                <p class="text-xs text-center mt-1">Zombie</p>
+                            </div>
+                            <div class="mob-to-sort bg-white p-3 rounded-xl shadow cursor-grab active:cursor-grabbing" draggable="true" data-mob="skeleton" data-type="hostile">
+                                <span class="text-4xl">&#128128;</span>
+                                <p class="text-xs text-center mt-1">Skeleton</p>
+                            </div>
+                            <div class="mob-to-sort bg-white p-3 rounded-xl shadow cursor-grab active:cursor-grabbing" draggable="true" data-mob="spider" data-type="hostile">
+                                <span class="text-4xl">&#129440;</span>
+                                <p class="text-xs text-center mt-1">Spider</p>
+                            </div>
+                            <div class="mob-to-sort bg-white p-3 rounded-xl shadow cursor-grab active:cursor-grabbing" draggable="true" data-mob="pig" data-type="friendly">
+                                <span class="text-4xl">&#128054;</span>
+                                <p class="text-xs text-center mt-1">Pig</p>
+                            </div>
+                            <div class="mob-to-sort bg-white p-3 rounded-xl shadow cursor-grab active:cursor-grabbing" draggable="true" data-mob="cow" data-type="friendly">
+                                <span class="text-4xl">&#128004;</span>
+                                <p class="text-xs text-center mt-1">Cow</p>
+                            </div>
+                            <div class="mob-to-sort bg-white p-3 rounded-xl shadow cursor-grab active:cursor-grabbing" draggable="true" data-mob="chicken" data-type="friendly">
+                                <span class="text-4xl">&#128036;</span>
+                                <p class="text-xs text-center mt-1">Chicken</p>
+                            </div>
+                            <div class="mob-to-sort bg-white p-3 rounded-xl shadow cursor-grab active:cursor-grabbing" draggable="true" data-mob="sheep" data-type="friendly">
+                                <span class="text-4xl">&#129385;</span>
+                                <p class="text-xs text-center mt-1">Sheep</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sort bins -->
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div class="sort-bin hostile-bin" 
+                             ondragover="handleDragOver(event)" 
+                             ondragleave="handleDragLeave(event)"
+                             ondrop="handleDrop(event, 'hostile')">
+                            <h4 class="text-xl font-bold text-red-600 text-center mb-2">&#128465; Hostile</h4>
+                            <p class="text-sm text-gray-600 text-center">DANGER! Keep away!</p>
+                            <div id="hostileBin" class="flex flex-wrap gap-2 mt-4 justify-center"></div>
+                        </div>
+                        <div class="sort-bin friendly-bin"
+                             ondragover="handleDragOver(event)" 
+                             ondragleave="handleDragLeave(event)"
+                             ondrop="handleDrop(event, 'friendly')">
+                            <h4 class="text-xl font-bold text-green-600 text-center mb-2">&#10084; Friendly</h4>
+                            <p class="text-sm text-gray-600 text-center">Safe to be near!</p>
+                            <div id="friendlyBin" class="flex flex-wrap gap-2 mt-4 justify-center"></div>
+                        </div>
+                    </div>
+                    
+                    <div id="sortingStatus" class="text-center text-lg font-bold text-purple-600 mb-4">
+                        0/8 Mobs Sorted!
+                    </div>
+                </div>
+                
+                <!-- Touch fallback for mobile -->
+                <div class="md:hidden mt-4 p-4 bg-blue-50 rounded-xl">
+                    <h4 class="font-bold text-blue-600 mb-2">Mobile: Tap to Sort!</h4>
+                    <p class="text-sm text-gray-600 mb-3">Can't drag? Tap a mob, then tap a bin!</p>
+                    <div id="selectedMob" class="text-center mb-3 hidden">
+                        <p class="text-sm text-gray-600">Selected: <span id="selectedMobName" class="font-bold"></span></p>
+                        <button onclick="placeSelectedMob('hostile')" class="bg-red-500 text-white px-4 py-2 rounded-lg mr-2">&#128465; Hostile</button>
+                        <button onclick="placeSelectedMob('friendly')" class="bg-green-500 text-white px-4 py-2 rounded-lg">&#10084; Friendly</button>
+                    </div>
+                </div>
+                
+                <!-- Discussion -->
+                <div class="bg-yellow-100 rounded-xl p-4 border-2 border-yellow-400 mt-4">
+                    <p class="text-yellow-800 font-bold">&#128104;&#8205;&#128187; Tell a Friend:</p>
+                    <p class="text-gray-700">Why do you think Creepers are dangerous but Pigs are safe?</p>
+                </div>
+                
+                <button id="sortCompleteBtn" onclick="completeStep(4)" class="complete-btn mt-6 w-full" disabled>
+                    Mission Done! &#127942;
+                </button>
+            </div>
+        </section>
+        
+        <div id="connector4" class="connector"></div>
+        
+        <!-- ============ STEP 5: ACTIVITY GAMES ============ -->
+        <section id="step5" class="mb-8 scroll-mt-24">
+            <div class="flex items-center gap-4 mb-6">
+                <div id="badge5" class="step-badge pending">5</div>
+                <h2 class="text-2xl md:text-3xl text-green-800">Activity Games!</h2>
+            </div>
+            
+            <div class="bg-white rounded-3xl p-6 shadow-xl border-4 border-pink-400">
+                <h3 class="text-xl text-pink-600 mb-2">&#127947; Time to Move!</h3>
+                <p class="text-gray-600 mb-6">Complete all 3 activities!</p>
+                
+                <div id="activityStatus" class="text-center text-lg font-bold text-green-600 mb-4">
+                    0/3 Activities Done
+                </div>
+                
+                <div class="space-y-4">
+                    <!-- Activity 1: Creeper Freeze -->
+                    <div id="activity1" class="activity-card cursor-pointer" onclick="completeActivity(1)">
+                        <div class="flex items-center gap-4">
+                            <div class="text-5xl">&#127917;</div>
+                            <div class="flex-1">
+                                <h4 class="font-bold text-lg text-gray-800">Creeper Freeze Dance</h4>
+                                <p class="text-gray-600">Dance when music plays, FREEZE when it stops!</p>
+                            </div>
+                            <div class="check-indicator w-12 h-12 rounded-full border-4 border-gray-300 flex items-center justify-center">
+                                <span class="text-2xl"></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Activity 2: Zombie Stomp -->
+                    <div id="activity2" class="activity-card cursor-pointer" onclick="completeActivity(2)">
+                        <div class="flex items-center gap-4">
+                            <div class="text-5xl">&#128170;</div>
+                            <div class="flex-1">
+                                <h4 class="font-bold text-lg text-gray-800">Zombie Stomp</h4>
+                                <p class="text-gray-600">Stomp your feet like a zombie! Can you stomp 10 times?</p>
+                                <div id="stompCounter" class="mt-2 text-2xl font-bold text-orange-500">0/10</div>
+                            </div>
+                            <div class="check-indicator w-12 h-12 rounded-full border-4 border-gray-300 flex items-center justify-center">
+                                <span class="text-2xl"></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Activity 3: Night Vision -->
+                    <div id="activity3" class="activity-card cursor-pointer" onclick="completeActivity(3)">
+                        <div class="flex items-center gap-4">
+                            <div class="text-5xl">&#128367;</div>
+                            <div class="flex-1">
+                                <h4 class="font-bold text-lg text-gray-800">Night Vision Search</h4>
+                                <p class="text-gray-600">Close your eyes. Can you find 3 things in the room?</p>
+                            </div>
+                            <div class="check-indicator w-12 h-12 rounded-full border-4 border-gray-300 flex items-center justify-center">
+                                <span class="text-2xl"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <div id="connector5" class="connector"></div>
+        
+        <!-- ============ STEP 6: THE BIG IDEA ============ -->
+        <section id="step6" class="mb-8 scroll-mt-24">
+            <div class="flex items-center gap-4 mb-6">
+                <div id="badge6" class="step-badge pending">6</div>
+                <h2 class="text-2xl md:text-3xl text-green-800">The Big Idea!</h2>
+            </div>
+            
+            <div class="bg-white rounded-3xl p-6 shadow-xl border-4 border-cyan-400">
+                <h3 class="text-xl text-cyan-600 mb-6">&#129504; What You Learned Today!</h3>
+                
+                <div class="space-y-4">
+                    <!-- Concept 1 -->
+                    <div class="bg-gradient-to-r from-red-100 to-orange-100 rounded-xl p-5 border-2 border-red-300">
+                        <div class="flex items-start gap-3">
+                            <span class="text-4xl">&#128163;</span>
+                            <div>
+                                <h4 class="font-bold text-lg text-red-700">Hostile Mobs Are Scary!</h4>
+                                <p class="text-gray-700">Creepers, Zombies, and Skeletons can hurt your buildings and YOU!</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Concept 2 -->
+                    <div class="bg-gradient-to-r from-blue-100 to-cyan-100 rounded-xl p-5 border-2 border-blue-300">
+                        <div class="flex items-start gap-3">
+                            <span class="text-4xl">&#127773;</span>
+                            <div>
+                                <h4 class="font-bold text-lg text-blue-700">Light Keeps Us Safe!</h4>
+                                <p class="text-gray-700">Mobs don't like light! Torches and the sun keep them away.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Concept 3 -->
+                    <div class="bg-gradient-to-r from-green-100 to-emerald-100 rounded-xl p-5 border-2 border-green-300">
+                        <div class="flex items-start gap-3">
+                            <span class="text-4xl">&#10084;</span>
+                            <div>
+                                <h4 class="font-bold text-lg text-green-700">Friendly Mobs Are Friends!</h4>
+                                <p class="text-gray-700">Pigs, cows, and chickens won't hurt you. They can be your buddies!</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Summary connection -->
+                <div class="mt-6 bg-yellow-100 rounded-xl p-4 border-2 border-yellow-400">
+                    <p class="text-yellow-800 font-bold">&#128640; Now You Know!</p>
+                    <p class="text-gray-700">You can keep your Pixel Block Village safe by knowing which mobs to watch out for!</p>
+                </div>
+                
+                <button onclick="completeStep(6)" class="complete-btn mt-6 w-full">
+                    I Understand! &#129308;
+                </button>
+            </div>
+        </section>
+        
+        <!-- ============ REWARD SECTION ============ -->
+        <section id="reward" class="mb-8 hidden">
+            <div class="text-center mb-8">
+                <h2 class="text-4xl md:text-5xl text-yellow-600 mb-4">&#127942; Level Up!</h2>
+                <p class="text-2xl text-green-700">You completed the mission!</p>
+            </div>
+            
+            <div class="bg-white rounded-3xl p-8 shadow-2xl border-4 border-yellow-400 text-center">
+                <!-- Confetti container -->
+                <div id="confettiContainer"></div>
+                
+                <!-- Badge -->
+                <div class="reward-badge mx-auto mb-6">
+                    <span class="text-6xl">&#128163;</span>
+                </div>
+                
+                <img src="magikidlogo.png" class="h-16 mx-auto mb-4">
+                
+                <h3 class="text-2xl font-bold text-gray-800 mb-2">Mob Expert Badge!</h3>
+                <p class="text-lg text-gray-600 mb-6">Official Pixel Block Architects Rookie!</p>
+                
+                <!-- What You Learned -->
+                <div class="bg-green-50 rounded-xl p-4 text-left mb-6">
+                    <h4 class="font-bold text-green-700 mb-2">&#10004; What You Learned:</h4>
+                    <ul class="text-gray-700 space-y-1">
+                        <li>&#10004; Creepers EXPLODE when they get close!</li>
+                        <li>&#10004; Zombies and Skeletons come at night!</li>
+                        <li>&#10004; Light keeps hostile mobs away!</li>
+                        <li>&#10004; Pigs, cows, and chickens are friendly!</li>
+                    </ul>
+                </div>
+                
+                <!-- Sound button -->
+                <button onclick="playSound('victory')" class="bg-purple-500 text-white px-6 py-3 rounded-full font-bold mb-4">
+                    &#128266; Play Victory Sound!
+                </button>
+                
+                <!-- Exit button -->
+                <button onclick="exitMission()" class="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-8 py-4 rounded-full font-bold text-xl shadow-lg">
+                    &#127968; Back to Home Base!
+                </button>
+            </div>
+        </section>
+        
+    </main>
+    
+    <!-- Footer -->
+    <footer class="bg-green-800 text-white py-6 mt-12 text-center">
+        <img src="magikidlogo.png" class="h-10 mx-auto mb-3">
+        <p class="text-sm">Magikid AI Robotics Lab</p>
+        <p class="text-xs text-green-300">Empowering Young Minds Through Robotics</p>
+    </footer>
+    
+    <!-- JavaScript -->
+    <script>
+        // State
+        let completedSteps = new Set();
+        let totalSteps = 6;
+        let checkedItems = [false, false, false, false];
+        let sortedMobs = 0;
+        let totalMobs = 8;
+        let activitiesCompleted = 0;
+        let selectedMobForMobile = null;
+        let stompCount = 0;
+        let audioContext = null;
+        
+        // Character animation
+        function animateCharacter() {
+            const body = document.querySelector('.blocky-body');
+            body.style.animation = 'none';
+            body.offsetHeight; // Trigger reflow
+            body.style.animation = 'wiggle 0.5s ease-in-out 3';
+        }
+        
+        // Movement activities
+        function doSneakyWalk() {
+            document.getElementById('movementStatus').innerHTML = '&#128694; Great sneaky walk! Be quiet like a Creeper!';
+            playSound('walk');
+        }
+        
+        function doQuickJump() {
+            document.getElementById('movementStatus').innerHTML = '&#127937; Wow! Quick reflexes!';
+            playSound('jump');
+        }
+        
+        function doFreeze() {
+            document.getElementById('movementStatus').innerHTML = '&#127770; PERFECT! Freeze like a statue!';
+            playSound('freeze');
+        }
+        
+        // Sound effects using Web Audio API
+        function playSound(type) {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            switch(type) {
+                case 'victory':
+                    oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
+                    oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.1); // E5
+                    oscillator.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.2); // G5
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.5);
+                    break;
+                case 'step':
+                    oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
+                    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.1);
+                    break;
+                case 'complete':
+                    oscillator.frequency.setValueAtTime(440, audioContext.currentTime);
+                    oscillator.frequency.setValueAtTime(554.37, audioContext.currentTime + 0.15);
+                    oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.3);
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.5);
+                    break;
+                case 'walk':
+                    oscillator.type = 'triangle';
+                    oscillator.frequency.setValueAtTime(150, audioContext.currentTime);
+                    gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.15);
+                    break;
+                case 'jump':
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(300, audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(600, audioContext.currentTime + 0.1);
+                    gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.15);
+                    break;
+                case 'freeze':
+                    oscillator.type = 'square';
+                    oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
+                    oscillator.frequency.setValueAtTime(100, audioContext.currentTime + 0.1);
+                    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.2);
+                    break;
+            }
+        }
+        
+        // Checklist
+        function toggleCheck(index) {
+            checkedItems[index] = !checkedItems[index];
+            const items = document.querySelectorAll('.checklist-item');
+            items[index].classList.toggle('checked', checkedItems[index]);
+            
+            const count = checkedItems.filter(Boolean).length;
+            document.getElementById('gearStatus').textContent = `${count}/4 Ready!`;
+            
+            document.getElementById('gearCompleteBtn').disabled = count < 4;
+            
+            if (checkedItems[index]) {
+                playSound('step');
+            }
+        }
+        
+        // Drag and drop for sorting
+        let draggedMob = null;
+        
+        document.querySelectorAll('.mob-to-sort').forEach(mob => {
+            mob.addEventListener('dragstart', (e) => {
+                draggedMob = e.target;
+                e.target.style.opacity = '0.5';
+            });
+            
+            mob.addEventListener('dragend', (e) => {
+                e.target.style.opacity = '1';
+                draggedMob = null;
+            });
+            
+            // Touch support
+            mob.addEventListener('click', (e) => {
+                if (window.innerWidth < 768) {
+                    selectedMobForMobile = mob;
+                    document.getElementById('selectedMob').classList.remove('hidden');
+                    document.getElementById('selectedMobName').textContent = mob.querySelector('p').textContent;
+                }
+            });
+        });
+        
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        }
+        
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+        
+        function handleDrop(e, binType) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('drag-over');
+            
+            if (draggedMob) {
+                const mobType = draggedMob.dataset.type;
+                const correct = mobType === binType;
+                
+                // Move to bin
+                const bin = document.getElementById(binType === 'hostile' ? 'hostileBin' : 'friendlyBin');
+                
+                if (correct) {
+                    draggedMob.remove();
+                    bin.appendChild(draggedMob);
+                    draggedMob.setAttribute('draggable', 'false');
+                    draggedMob.style.cursor = 'default';
+                    sortedMobs++;
+                    
+                    document.getElementById('sortingStatus').textContent = `${sortedMobs}/${totalMobs} Mobs Sorted!`;
+                    playSound('step');
+                    
+                    if (sortedMobs === totalMobs) {
+                        document.getElementById('sortCompleteBtn').disabled = false;
+                        document.getElementById('sortingStatus').textContent = '🎉 All Mobs Sorted!';
+                    }
+                } else {
+                    // Wrong bin - visual feedback
+                    e.currentTarget.style.background = 'rgba(255, 0, 0, 0.2)';
+                    setTimeout(() => {
+                        e.currentTarget.style.background = '';
+                    }, 300);
+                }
+            }
+        }
+        
+        function placeSelectedMob(binType) {
+            if (selectedMobForMobile) {
+                const mobType = selectedMobForMobile.dataset.type;
+                const correct = mobType === binType;
+                
+                const bin = document.getElementById(binType === 'hostile' ? 'hostileBin' : 'friendlyBin');
+                
+                if (correct) {
+                    selectedMobForMobile.remove();
+                    bin.appendChild(selectedMobForMobile);
+                    selectedMobForMobile.setAttribute('draggable', 'false');
+                    selectedMobForMobile.style.cursor = 'default';
+                    sortedMobs++;
+                    
+                    document.getElementById('sortingStatus').textContent = `${sortedMobs}/${totalMobs} Mobs Sorted!`;
+                    playSound('step');
+                    
+                    if (sortedMobs === totalMobs) {
+                        document.getElementById('sortCompleteBtn').disabled = false;
+                        document.getElementById('sortingStatus').textContent = '🎉 All Mobs Sorted!';
+                    }
+                }
+                
+                selectedMobForMobile = null;
+                document.getElementById('selectedMob').classList.add('hidden');
+            }
+        }
+        
+        // Activities
+        function completeActivity(num) {
+            const activity = document.getElementById(`activity${num}`);
+            const indicator = activity.querySelector('.check-indicator');
+            
+            if (activity.classList.contains('completed')) return;
+            
+            activity.classList.add('completed');
+            indicator.style.background = '#4CAF50';
+            indicator.style.borderColor = '#4CAF50';
+            indicator.innerHTML = '<span class="text-white text-xl">✓</span>';
+            
+            activitiesCompleted++;
+            document.getElementById('activityStatus').textContent = `${activitiesCompleted}/3 Activities Done`;
+            
+            playSound('complete');
+            
+            if (num === 2) {
+                // Zombie stomp counter
+                activity.onclick = () => {
+                    stompCount++;
+                    document.getElementById('stompCounter').textContent = `${stompCount}/10`;
+                    playSound('walk');
+                    
+                    if (stompCount >= 10 && !activity.classList.contains('completed')) {
+                        activity.classList.add('completed');
+                        indicator.style.background = '#4CAF50';
+                        indicator.style.borderColor = '#4CAF50';
+                        indicator.innerHTML = '<span class="text-white text-xl">✓</span>';
+                        activitiesCompleted++;
+                        document.getElementById('activityStatus').textContent = `${activitiesCompleted}/3 Activities Done`;
+                        playSound('complete');
+                    }
+                };
+            }
+            
+            if (activitiesCompleted === 3) {
+                setTimeout(() => completeStep(5), 500);
+            }
+        }
+        
+        // Complete step
+        function completeStep(n) {
+            if (completedSteps.has(n)) return;
+            
+            completedSteps.add(n);
+            
+            // Update badge
+            const badge = document.getElementById(`badge${n}`);
+            badge.classList.remove('pending', 'active');
+            badge.classList.add('completed');
+            badge.innerHTML = '✓';
+            
+            // Update connector
+            const connector = document.getElementById(`connector${n}`);
+            if (connector) connector.classList.add('completed');
+            
+            // Update progress
+            updateProgress();
+            
+            // Play sound
+            playSound('complete');
+            
+            // Show next step as active
+            if (n < 6) {
+                const nextBadge = document.getElementById(`badge${n + 1}`);
+                if (nextBadge && !completedSteps.has(n + 1)) {
+                    nextBadge.classList.remove('pending');
+                    nextBadge.classList.add('active');
+                }
+            }
+            
+            // Scroll to next step
+            if (n < 6) {
+                setTimeout(() => {
+                    document.getElementById(`step${n + 1}`).scrollIntoView({ behavior: 'smooth' });
+                }, 300);
+            }
+            
+            // Check if all complete
+            if (completedSteps.size === 6) {
+                setTimeout(showReward, 500);
+            }
+        }
+        
+        function updateProgress() {
+            const percent = (completedSteps.size / totalSteps) * 100;
+            document.getElementById('progressFill').style.width = `${percent}%`;
+            document.getElementById('progressText').textContent = `${completedSteps.size}/${totalSteps}`;
+        }
+        
+        // Show reward
+        function showReward() {
+            document.getElementById('reward').classList.remove('hidden');
+            document.getElementById('reward').scrollIntoView({ behavior: 'smooth' });
+            showConfetti();
+            playSound('victory');
+        }
+        
+        // Confetti animation
+        function showConfetti() {
+            const container = document.getElementById('confettiContainer');
+            const colors = ['#FF6B6B', '#4ECDC4', '#FFE66D', '#95E1D3', '#F38181', '#AA96DA', '#FCBAD3'];
+            
+            for (let i = 0; i < 60; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.top = '-20px';
+                confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+                confetti.style.animationDelay = Math.random() * 2 + 's';
+                confetti.style.animationDuration = (3 + Math.random() * 2) + 's';
+                container.appendChild(confetti);
+                
+                setTimeout(() => confetti.remove(), 5000);
+            }
+        }
+        
+        // Exit mission
+        function exitMission() {
+            showConfetti();
+            setTimeout(() => {
+                alert('🌟 Great job, Rookie! You learned about hostile mobs! 🌟');
+            }, 300);
+        }
+        
+        // Scroll tracking
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const stepNum = parseInt(entry.target.id.replace('step', ''));
+                    if (!completedSteps.has(stepNum)) {
+                        // Mark all previous badges as completed if they've scrolled past
+                        for (let i = 1; i < stepNum; i++) {
+                            if (!completedSteps.has(i)) {
+                                const badge = document.getElementById(`badge${i}`);
+                                if (badge) {
+                                    badge.classList.remove('pending', 'active');
+                                    badge.classList.add('active');
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }, { threshold: 0.5 });
+        
+        document.querySelectorAll('section').forEach(section => {
+            observer.observe(section);
+        });
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set first step as active
+            document.getElementById('badge1').classList.remove('pending');
+            document.getElementById('badge1').classList.add('active');
+        });
+    </script>
+</body>
+</html>
